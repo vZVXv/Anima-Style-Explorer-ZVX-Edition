@@ -2,7 +2,7 @@
 
 An interactive, high-performance visual database designed to explore artist styles within the **Anima 2B parameter model**, completely cleaned from donation triggers, domain locks, and timed promotional popups.
 
-> 🚀 **Why this fork?** Unlike other copies, the **ZVX Edition** has been completely stripped of annoying timed overlays (which blocked the screen after 25 seconds) and domain checks. It is 100% free, lightweight, and community-focused.
+> 🚀 **Why this fork?** Unlike other copies, the **ZVX Edition** has been completely stripped of annoying timed overlays (which blocked the screen after 25 seconds) and domain checks. It is 100% free, offline, and community-focused.
 
 <p align="center">
   <img src="images/Anima 2B Style Explorer - ZVX Edition.png" alt="Anima 2B Style Explorer Banner" width="1000">
