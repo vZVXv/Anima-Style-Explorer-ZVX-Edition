@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <!-- Google tag (gtag.js) -->
@@ -34,10 +34,15 @@
 </head>
 <body>
     <div class="top-info-container">
-        <button id="open-landing-btn" class="support-button-top">🔥 Unlock 43k+ Styles for Anima Base 1.0</button>
+        
         <a href="https://github.com/ThetaCursed" class="author-credit" title="Created by ThetaCursed" target="_blank" rel="noopener noreferrer">Created by <span>ThetaCursed</span></a>
+        <a href="https://github.com/vZVXv" class="author-credit" title="Edit by ZVX" target="_blank" rel="noopener noreferrer">Edit by <span>ZVX</span></a>
     </div>
     <div class="page-title-container">
+	    <!-- Блок неоновой вывески -->
+    <div class="neon-sign-wrapper">
+        <span class="neon-text">ZVX Edition</span>
+    </div>
         <h1 class="page-title">Anima 2B - Style Explorer</h1>
         <p class="page-subtitle" id="style-counter"></p>
         <div class="visually-hidden">
@@ -50,6 +55,52 @@
             for your AI art generation workflow.
         </div>
     </div>
+
+<style>
+/* Стили для позиционирования и наклона вывески */
+.neon-sign-wrapper {
+    display: inline-block;
+    margin-bottom: 15px;
+    transform: rotate(-5deg); /* Угол наклона вывески */
+    font-family: 'Arial Black', sans-serif; /* Жирный футуристичный шрифт */
+}
+
+/* Эффект неонового свечения */
+.neon-text {
+    font-size: 1.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #fff;
+    /* Многослойная тень для создания эффекта яркого неона */
+    text-shadow: 
+        0 0 4px #fff,
+        0 0 11px #fff,
+        0 0 19px #fff,
+        0 0 40px #0fa, /* Основной цвет свечения (бирюзовый/зеленый) */
+        0 0 80px #0fa,
+        0 0 90px #0fa,
+        0 0 100px #0fa,
+        0 0 150px #0fa;
+    /* Необязательная легкая анимация мерцания неона */
+    animation: flicker 1.5s infinite alternate;
+}
+
+/* Анимация мерцания */
+@keyframes flicker {
+    0%, 100% {
+        opacity: 1;
+    }
+    41%, 45% {
+        opacity: 0.95;
+    }
+    43% {
+        opacity: 0.8;
+    }
+}
+</style>
+
+
 
     <header class="header">
         <nav class="tabs">
