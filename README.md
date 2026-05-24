@@ -5,14 +5,9 @@ An interactive, high-performance visual database designed to explore artist styl
 > 🚀 **Why this fork?** Unlike other copies, the **ZVX Edition** has been completely stripped of annoying timed overlays (which blocked the screen after 25 seconds) and domain checks. It is 100% free, lightweight, and community-focused.
 
 <p align="center">
-  <img src="images/Anima 2B Style Explorer.png" alt="Anima 2B Style Explorer Banner" width="800">
+  <img src="images/Anima 2B Style Explorer - ZVX Edition.png" alt="Anima 2B Style Explorer Banner" width="1000">
 </p>
-<p align="center">
-  <img src="images/Anima 2B Style Explorer - Favorites Tab.png" alt="Anima 2B Style Explorer - Favorites Tab" width="800">
-</p>
-<p align="center">
-  <img src="images/swipe-mode.png" alt="Anima 2B Style Explorer Swipe Mode" width="800">
-</p>
+
 
 ## 🚀 Overview
 The **Anima 2B Style Explorer** is a specialized tool for AI artists and prompt engineers. It provides a standardized way to benchmark how the **Anima 2B model** (by CircleStone Labs) interprets specific artist influences from the **Danbooru** dataset.
