@@ -99,24 +99,7 @@ body::-webkit-scrollbar-thumb {
 
 
 
-/* Оверлей большого красного креста */
-.hidden-cross-overlay {
-    position: absolute;
-    top: 0; 
-    left: 0; 
-    right: 0; 
-    bottom: 0;
-    background: rgba(255, 0, 0, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 6rem;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s ease;
-    pointer-events: none; /* Чтобы крест не блокировал клики, пока висит */
-    z-index: 10;
-}
+
 
 /* Класс, который активирует анимацию креста */
 .card.is-hidden-animating .hidden-cross-overlay {
@@ -2543,13 +2526,20 @@ input[type="range"]::-webkit-slider-thumb {
     left: 0; 
     right: 0; 
     bottom: 0;
-    background: rgba(255, 0, 0, 0.4); /* Твое оригинальное красное напыление */
+    background: rgba(255, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    
+    font-size: 6rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
+    pointer-events: none; /* Чтобы крест не блокировал клики, пока висит */
+
+	
+	
+	
     /* НАСТРОЙКИ КРЕСТА: Делаем его огромным и жирным */
-    font-size: 24rem; 
     font-weight: 900;
     color: #ff3b30; /* Насыщенный красный цвет */
     font-family: system-ui, -apple-system, sans-serif;
@@ -2560,10 +2550,6 @@ input[type="range"]::-webkit-slider-thumb {
     /* ЧЕРНАЯ ТЕНЬ под крестом для объема */
     text-shadow: 0 15px 40px rgba(0, 0, 0, 0.6); 
     
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s ease;
-    pointer-events: none; /* Чтобы крест не блокировал клики, пока висит */
     z-index: 9999; /* Выставляем самый высокий приоритет, чтобы перекрыть все элементы */
 }
 
