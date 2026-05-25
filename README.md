@@ -8,6 +8,7 @@ An interactive, high-performance visual database designed to explore artist styl
 * **Fully Free:** Removed all monetization.
 * **Artist Hiding:** Instantly hide any artist from the main list to clean up your workspace.
 * **Hidden Archive Tab:** Dedicated tab to view and manage all your hidden artists.
+* **Hidden Archive Tab:** Add Import/Export JSON
 * **Quick Restore:** Easily unhide and bring any artist back to the main view with one click.
 * **Swipe Mode Mouse Scroll:** Enabled mouse wheel scrolling directly within the Swipe Mode.
 
