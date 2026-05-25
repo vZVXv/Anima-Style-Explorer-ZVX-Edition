@@ -17,6 +17,7 @@ An interactive, high-performance visual database designed to explore artist styl
   <img src="images/preview1.png" alt="Anima 2B Style Explorer Banner" width="1000">
   <img src="images/preview2.png" alt="Anima 2B Style Explorer Banner" width="1000">
   <img src="images/preview3.png" alt="Anima 2B Style Explorer Banner" width="1000">
+  <img src="images/preview4.png" alt="Anima 2B Style Explorer Banner" width="1000">
 </p>
 
 
