@@ -1,16 +1,15 @@
 # Anima 2B Style Explorer 🎨 — ZVX Edition (Clean & Free)
 
-An interactive, high-performance visual database designed to explore artist styles within the **Anima 2B parameter model**, completely cleaned from donation triggers, domain locks, and timed promotional popups.
-
-> 🚀 **Why this fork?** Unlike other copies, the **ZVX Edition** has been completely stripped of annoying timed overlays (which blocked the screen after 25 seconds) and domain checks. It is 100% free, offline, and community-focused.
+An interactive, high-performance visual database designed to explore artist styles within the **Anima 2B parameter model**
 
 
 ## 🚀 ZVX Edition
 * **100% Offline & Local:** Runs completely on your local PC with no internet connection required.
-* **Fully Free:** Removed all monetization, donation prompts, and paywalls entirely.
+* **Fully Free:** Removed all monetization.
 * **Artist Hiding:** Instantly hide any artist from the main list to clean up your workspace.
 * **Hidden Archive Tab:** Dedicated tab to view and manage all your hidden artists.
 * **Quick Restore:** Easily unhide and bring any artist back to the main view with one click.
+* **Swipe Mode Mouse Scroll:** Enabled mouse wheel scrolling directly within the Swipe Mode.
 
 
 <p align="center">
