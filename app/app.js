@@ -33,6 +33,7 @@
     let itemsSortedByWorks = []; 
     let selectedArtistIds = new Set(); // Для мульти-выделения в избранном
     let favorites = new Map(); // Используем Map для хранения {id: timestamp}
+
     let currentItems = [];
     let currentPage = 0; // Текущая страница для ленивой загрузки
     let startIndexOffset = 0; // Смещение для "перехода к номеру"
@@ -76,7 +77,9 @@ function getCdnUrl(partition, id) {
         return `images/${partition}/${id}.webp`;
     }
 
-
+const tabHidden = document.getElementById('tab-hidden');
+let hiddenItems = new Map();
+const HIDDEN_STORE_NAME = 'hidden';
 
     // --- Функции создания элементов ---
 
@@ -85,9 +88,10 @@ function getCdnUrl(partition, id) {
     const DB_NAME = 'StyleGalleryDB';
     const STORE_NAME = 'favorites';
 
-    function initDB() {
+function initDB() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, 4); // Увеличиваем версию для обновления схемы
+            // Увеличиваем версию до 5 для добавления хранилища скрытых элементов
+            const request = indexedDB.open(DB_NAME, 5); 
 
             request.onerror = () => {
                 console.error('IndexedDB error:', request.error);
@@ -101,21 +105,28 @@ function getCdnUrl(partition, id) {
 
             request.onupgradeneeded = (event) => {
                 const upgradeDb = event.target.result;
+                
                 // Хранилище для избранного
                 if (!upgradeDb.objectStoreNames.contains(STORE_NAME)) {
                     const favStore = upgradeDb.createObjectStore(STORE_NAME, { keyPath: 'id' });
                     favStore.createIndex('timestamp', 'timestamp', { unique: false });
                 }
+                
                 // Хранилище для папок
                 if (!upgradeDb.objectStoreNames.contains('folders')) {
                     const foldersStore = upgradeDb.createObjectStore('folders', { keyPath: 'id' });
-                    // Добавляем индексы для новых полей, если они нужны для запросов
-                    // Для lastArtistId и lastArtistImage индексы не обязательны, если мы их только отображаем
-                    foldersStore.createIndex('name', 'name', { unique: false }); // Индекс для сортировки по имени
+                    foldersStore.createIndex('name', 'name', { unique: false }); 
                 }
+                
                 // Хранилище для связи артистов и папок
                 if (!upgradeDb.objectStoreNames.contains('folder_artists')) {
                     upgradeDb.createObjectStore('folder_artists', { keyPath: 'folderId' });
+                }
+
+                // НОВОЕ: Хранилище для скрытых элементов
+                if (!upgradeDb.objectStoreNames.contains(HIDDEN_STORE_NAME)) {
+                    const hiddenStore = upgradeDb.createObjectStore(HIDDEN_STORE_NAME, { keyPath: 'id' });
+                    hiddenStore.createIndex('timestamp', 'timestamp', { unique: false });
                 }
             };
         });
@@ -133,7 +144,24 @@ function getCdnUrl(partition, id) {
             };
         });
     }
-
+// 1. Добавьте саму функцию загрузки (можно разместить под функцией loadFavoritesFromDB)
+function loadHiddenFromDB() {
+    return new Promise((resolve) => {
+        if (!db) return resolve();
+        const transaction = db.transaction([HIDDEN_STORE_NAME], 'readonly');
+        const objectStore = transaction.objectStore(HIDDEN_STORE_NAME);
+        const request = objectStore.getAll();
+        request.onsuccess = () => {
+            // Записываем данные в карту Map [id -> timestamp]
+            hiddenItems = new Map(request.result.map(item => [item.id, item.timestamp]));
+            resolve();
+        };
+        request.onerror = () => {
+            console.error('Error loading hidden items');
+            resolve();
+        };
+    });
+}
     /**
      * Алгоритм тасования Фишера-Йетса для случайного перемешивания массива.
      * @param {Array} array - Массив для перемешивания.
@@ -186,7 +214,7 @@ function getCdnUrl(partition, id) {
             console.table(notFoundArtists);
         }
     }
-    function createCard(item) {
+function createCard(item) {
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.artist = item.artist;
@@ -201,7 +229,7 @@ function getCdnUrl(partition, id) {
             ? `<div class="uniqueness-rank" title="Uniqueness Rank">#${item.uniquenessRank}</div>`
             : '';
 
-        let favButtonHTML;
+        let favButtonHTML = '';
         if (currentView === 'favorites') {
             // В "Избранном" всегда показываем кнопку удаления (крестик)
             favButtonHTML = `
@@ -213,7 +241,7 @@ function getCdnUrl(partition, id) {
                     ×
                 </button>
             `;
-        } else {
+        } else if (currentView === 'gallery') {
             // В "Галерее" показываем звездочку
             favButtonHTML = `
                 <button 
@@ -226,6 +254,16 @@ function getCdnUrl(partition, id) {
             `;
         }
 
+        // НОВОЕ: Логика кнопки корзины и оверлея
+        let trashButtonHTML = '';
+        if (currentView === 'gallery') {
+            trashButtonHTML = `<button class="trash-button" title="Hide artist">🗑️</button>`;
+        } else if (currentView === 'hidden') {
+            trashButtonHTML = `<button class="trash-button remove-hidden" title="Restore artist">↩️</button>`;
+        }
+        
+        const crossOverlay = `<div class="hidden-cross-overlay">❌</div>`;
+
         card.innerHTML = `
             <img class="card__image" src="${item.image}" alt="${item.artist}" loading="lazy" width="832" height="1216">
             <div class="card__info">
@@ -236,11 +274,14 @@ function getCdnUrl(partition, id) {
             </div>
             ${rankHTML}
             ${favButtonHTML}
+            ${trashButtonHTML}
+            ${crossOverlay}
         `;
 
-        // Копирование имени по клику на карточку (кроме кнопки "избранное")
+        // Копирование имени по клику на карточку (кроме кнопок действий)
         card.addEventListener('click', (e) => {
-            if (e.target.classList.contains('favorite-button')) {
+            // Игнорируем клики по кнопкам "избранное" и "корзина"
+            if (e.target.classList.contains('favorite-button') || e.target.classList.contains('trash-button')) {
                 return;
             }
 
@@ -266,10 +307,21 @@ function getCdnUrl(partition, id) {
         });
 
         const favButton = card.querySelector('.favorite-button');
-        favButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Предотвращаем копирование имени
-            toggleFavorite(item, favButton);
-        });
+        if (favButton) {
+            favButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Предотвращаем копирование имени
+                toggleFavorite(item, favButton);
+            });
+        }
+
+        // НОВОЕ: Обработчик для корзины
+        const trashBtn = card.querySelector('.trash-button');
+        if (trashBtn) {
+            trashBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleHidden(item, card);
+            });
+        }
 
         return card;
     }
@@ -419,7 +471,7 @@ function getCdnUrl(partition, id) {
             }
         });
 
-        // 2. Фильтруем по избранному, если нужно (до поиска, чтобы поиск работал по избранным)
+// 2. Фильтруем контент в зависимости от активной вкладки (до поиска)
         if (currentView === 'favorites') {
             sortedItems = sortedItems.filter(item => favorites.has(item.id));
 
@@ -461,6 +513,14 @@ function getCdnUrl(partition, id) {
                     return timestampB - timestampA;
                 });
             }
+        } else if (currentView === 'hidden') {
+            // НОВОЕ: Логика для вкладки скрытых элементов
+            sortedItems = sortedItems.filter(item => hiddenItems.has(item.id));
+            // Сортируем по дате скрытия (сначала новые)
+            sortedItems.sort((a, b) => (hiddenItems.get(b.id) || 0) - (hiddenItems.get(a.id) || 0));
+        } else if (currentView === 'gallery') {
+            // НОВОЕ: Исключаем скрытые элементы из основной галереи
+            sortedItems = sortedItems.filter(item => !hiddenItems.has(item.id));
         }
 
         // 3. Фильтруем по строке поиска
@@ -617,6 +677,57 @@ function getCdnUrl(partition, id) {
         // Обновляем состояние сердечек на видимых карточках в галерее
         updateVisibleFavorites();
     }
+	function toggleHidden(item, card) {
+    const transaction = db.transaction(HIDDEN_STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(HIDDEN_STORE_NAME);
+
+    if (hiddenItems.has(item.id)) {
+        // Восстанавливаем из скрытых (клик во вкладке Hidden)
+        store.delete(item.id);
+        hiddenItems.delete(item.id);
+        showToast('Artist restored to gallery');
+        
+        if (currentView === 'hidden') {
+            card.style.transition = 'all 0.15s ease';
+            card.style.transform = 'scale(0.8)';
+            card.style.opacity = '0';
+            card.addEventListener('transitionend', () => {
+                card.remove();
+                if (hiddenItems.size === 0) {
+                    galleryContainer.innerHTML = '<p style="text-align: center; grid-column: 1 / -1;">No hidden artists yet.</p>';
+                }
+            }, { once: true });
+        }
+    } else {
+        // Прячем художника (клик во вкладке Gallery)
+        const hiddenItem = { id: item.id, timestamp: Date.now() };
+        store.put(hiddenItem);
+        hiddenItems.set(item.id, hiddenItem.timestamp);
+        
+        // Удаляем из избранного, если он там был (чтобы не дублировать логику)
+        if (favorites.has(item.id)) {
+            const favTx = db.transaction(STORE_NAME, 'readwrite');
+            favTx.objectStore(STORE_NAME).delete(item.id);
+            favorites.delete(item.id);
+        }
+        
+        if (currentView === 'gallery') {
+            // Активируем класс для показа креста
+            card.classList.add('is-hidden-animating');
+            
+            // Ждем полсекунды (чтобы юзер увидел крест), затем сворачиваем карточку
+            setTimeout(() => {
+                card.style.transition = 'all 0.2s ease';
+                card.style.transform = 'scale(0.8)';
+                card.style.opacity = '0';
+                card.style.margin = '0';
+                card.style.padding = '0';
+                card.style.maxHeight = '0px';
+                card.addEventListener('transitionend', () => card.remove(), { once: true });
+            }, 500);
+        }
+    }
+}
 
     /**
      * Обновляет визуальное состояние кнопок "избранное" для всех видимых карточек в галерее.
@@ -648,11 +759,11 @@ function getCdnUrl(partition, id) {
         }, 2000);
     }
 
-    function setActiveTab(activeTab) {
-        const tabs = [tabGallery, tabFavorites];
-        tabs.forEach(tab => tab.classList.remove('active'));
-        activeTab.classList.add('active');
-    }
+function setActiveTab(activeTab) {
+    const tabs = [tabGallery, tabFavorites, tabHidden]; // Добавили tabHidden
+    tabs.forEach(tab => { if(tab) tab.classList.remove('active'); });
+    if(activeTab) activeTab.classList.add('active');
+}
 
     /**
      * Централизованная функция для управления состоянием (включено/выключено) всех контролов.
@@ -729,6 +840,36 @@ function getCdnUrl(partition, id) {
             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
     });
+	
+	if (tabHidden) {
+    tabHidden.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentView === 'hidden') return;
+        
+        setActiveTab(tabHidden);
+        favoritesControlsWrapper.style.display = 'none'; 
+        txtExportContainer.style.display = 'none';
+        swipeContinueHint.style.display = 'none';
+        jumpControls.style.display = 'none';
+        searchInput.parentElement.style.borderBottom = 'none';
+        swipeLaunchControls.style.display = 'none';
+        sortControls.style.display = 'none';
+        
+        currentView = 'hidden';
+        startIndexOffset = 0;
+        jumpInput.value = '';
+        isJumpingToArtist = false;
+
+        styleCounter.innerHTML = `Hidden Styles: <span class="style-count-number">${hiddenItems.size.toLocaleString('en-US')}</span>`;
+
+        if (searchInput.value) {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        renderView();
+    });
+}
 
     tabFavorites.addEventListener('click', (e) => {
         e.preventDefault(); // Предотвращаем переход по ссылке
@@ -1344,14 +1485,18 @@ function getCdnUrl(partition, id) {
 
 
 
-    initDB()
-        .then(() => {
+initDB()
+        .then(async () => {
+            // Загружаем скрытые элементы из базы данных перед основным рендером
+            if (typeof loadHiddenFromDB === 'function') {
+                await loadHiddenFromDB();
+            }
+            // Запускаем основную загрузку данных приложения
             loadInitialData();
         })
         .catch(err => {
             console.error(err);
             galleryContainer.innerHTML = '<p style="text-align: center; grid-column: 1 / -1;">Failed to initialize database.</p>';
         });
-   
 
 });

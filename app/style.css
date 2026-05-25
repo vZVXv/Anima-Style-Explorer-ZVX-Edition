@@ -45,6 +45,85 @@ body::-webkit-scrollbar-thumb {
     background-clip: padding-box;
 }
 
+/* Кнопка корзины (по умолчанию слева, чтобы не конфликтовать со звездочкой) */
+.trash-button {
+    position: absolute;
+    top: 56px;    /* Разместили чуть ниже правого верхнего угла (под звездочкой 12px + 36px + 8px отступ) */
+    right: 12px;  /* Такое же выравнивание по правому краю */
+    width: 36px;
+    height: 36px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    /* Убираем текстовый символ и используем SVG фон корзины */
+    font-size: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='none' stroke='%23ffffff' stroke-width='32' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M112 112l20 320c1.5 24.3 21.5 43.3 45.8 43.3h156.4c24.3 0 44.3-19 45.8-43.3l20-320M80 112h352M192 112V72c0-13.3 10.7-24 24-24h80c13.3 0 24 10.7 24 24v40M256 176v224M184 176l16 224M328 176l-16 224'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 50%; /* Чуть уменьшили размер иконки, чтобы она смотрелась гармонично */
+    z-index: 5;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+/* Эффект наведения и активного клика как у любимых кнопок */
+.trash-button:hover {
+    background-color: rgba(255, 59, 48, 0.8); /* При наведении подложка становится полупрозрачной красной */
+    transform: scale(1.05);
+}
+
+.trash-button:active {
+    transform: scale(0.95);
+}
+
+/* Стилизация для иконки "Восстановить из скрытых" (стрелочка назад) во вкладке Hidden */
+.trash-button.remove-hidden {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='none' stroke='%23ffffff' stroke-width='32' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M112 160l-64 64 64 64M64 224h288c70.7 0 128 57.3 128 128s-57.3 128-128 128'/%3E%3C/svg%3E");
+    background-size: 55%;
+	position: absolute;
+    top: 10px;        /* Высота от верхнего края как у сердечка */
+    right: 10px;      /* Сдвигаем левее (если у сердечка right: 10px + ширина кнопки) */
+    width: 36px;      /* Задай размеры под свой дизайн */
+    height: 36px;
+    z-index: 11;      /* Чтобы кнопка была поверх креста (.dislike-overlay) */
+    cursor: pointer;
+}
+
+.trash-button.remove-hidden:hover {
+    background-color: rgba(52, 199, 89, 0.8); /* Вкладка Hidden: при наведении на возврат подложка станет зеленой */
+}
+
+
+
+/* Оверлей большого красного креста */
+.hidden-cross-overlay {
+    position: absolute;
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    bottom: 0;
+    background: rgba(255, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 6rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
+    pointer-events: none; /* Чтобы крест не блокировал клики, пока висит */
+    z-index: 10;
+}
+
+/* Класс, который активирует анимацию креста */
+.card.is-hidden-animating .hidden-cross-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
 .page-title-container {
     text-align: center;
     margin-bottom: 30px;
