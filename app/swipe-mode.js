@@ -22,6 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeList = [];
     let likeAnimationTimeout; // Переменная для хранения таймера анимации
     
+    // Переменные для прокрутки колесиком мыши
+    let lastWheelTime = 0;
+    const WHEEL_COOLDOWN = 300; // Задержка в мс (регулируйте под себя, чтобы тачпад не листал слишком быстро)
+    
     // --- Логика двунаправленной предзагрузки ---
     const PRELOAD_WINDOW = 15; // Сколько изображений грузить вперед и назад от текущего
     const PRELOAD_TRIGGER_OFFSET = 5; // За сколько изображений до края "окна" начинать новую загрузку
@@ -128,8 +132,10 @@ document.addEventListener('DOMContentLoaded', () => {
         preloadedBehindIndex = currentIndex + 1;
         preloadAhead();
 
-        // Добавляем обработчики клавиатуры только когда режим активен
+        // Добавляем обработчики событий только когда режим активен
         document.addEventListener('keydown', handleSwipeKeyPress);
+        // Добавляем слушатель колеса мыши к оверлею. passive: false позволяет использовать preventDefault()
+        swipeOverlay.addEventListener('wheel', handleSwipeWheel, { passive: false });
     }
 
     /**
@@ -145,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // Удаляем обработчики, чтобы не мешать основной навигации
         document.removeEventListener('keydown', handleSwipeKeyPress);
+        swipeOverlay.removeEventListener('wheel', handleSwipeWheel);
     }
 
     /**
@@ -273,6 +280,31 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'Escape':
                 closeSwipeMode();
                 break;
+        }
+    }
+
+    /**
+     * Обработчик прокрутки колесиком мыши в Swipe Mode
+     * @param {WheelEvent} e
+     */
+    function handleSwipeWheel(e) {
+        // Блокируем стандартное поведение прокрутки (хотя body уже locked, это полезно для тачпадов)
+        e.preventDefault(); 
+
+        const currentTime = Date.now();
+        // Проверяем, прошло ли достаточно времени с последней прокрутки
+        if (currentTime - lastWheelTime < WHEEL_COOLDOWN) {
+            return;
+        }
+
+        if (e.deltaY > 0) {
+            // Прокрутка вниз - следующее изображение
+            navigate(1);
+            lastWheelTime = currentTime;
+        } else if (e.deltaY < 0) {
+            // Прокрутка вверх - предыдущее изображение
+            navigate(-1);
+            lastWheelTime = currentTime;
         }
     }
 
