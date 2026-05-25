@@ -815,11 +815,16 @@ function setActiveTab(activeTab) {
         window.scrollTo({ top: 0, behavior: 'smooth' }); // Плавная прокрутка наверх
     });
 
-    tabGallery.addEventListener('click', (e) => {
+tabGallery.addEventListener('click', (e) => {
         e.preventDefault(); // Предотвращаем переход по ссылке
         if (currentView === 'gallery') return;
         setActiveTab(tabGallery);
-        favoritesControlsWrapper.style.display = 'none'; // Скрываем кнопки импорта/экспорта
+        favoritesControlsWrapper.style.display = 'none'; // Скрываем кнопки импорта/экспорта избранного
+        
+        // СКРЫВАЕМ кнопки импорта/экспорта скрытых авторов
+        const hiddenControls = document.getElementById('hidden-controls-wrapper');
+        if (hiddenControls) hiddenControls.style.display = 'none';
+
         txtExportContainer.style.display = 'none';
         swipeContinueHint.style.display = 'none'; // Скрываем подсказку
         jumpControls.style.display = 'flex';
@@ -841,41 +846,52 @@ function setActiveTab(activeTab) {
         }
     });
 	
-	if (tabHidden) {
-    tabHidden.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (currentView === 'hidden') return;
-        
-        setActiveTab(tabHidden);
-        favoritesControlsWrapper.style.display = 'none'; 
-        txtExportContainer.style.display = 'none';
-        swipeContinueHint.style.display = 'none';
-        jumpControls.style.display = 'none';
-        searchInput.parentElement.style.borderBottom = 'none';
-        swipeLaunchControls.style.display = 'none';
-        sortControls.style.display = 'none';
-        
-        currentView = 'hidden';
-        startIndexOffset = 0;
-        jumpInput.value = '';
-        isJumpingToArtist = false;
+    if (tabHidden) {
+        tabHidden.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentView === 'hidden') return;
+            
+            setActiveTab(tabHidden);
+            favoritesControlsWrapper.style.display = 'none'; 
 
-        styleCounter.innerHTML = `Hidden Styles: <span class="style-count-number">${hiddenItems.size.toLocaleString('en-US')}</span>`;
+            // ПОКАЗЫВАЕМ кнопки импорта/экспорта скрытых авторов
+            const hiddenControls = document.getElementById('hidden-controls-wrapper');
+            if (hiddenControls) hiddenControls.style.display = 'flex';
 
-        if (searchInput.value) {
-            searchInput.value = '';
-            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+            txtExportContainer.style.display = 'none';
+            swipeContinueHint.style.display = 'none';
+            jumpControls.style.display = 'none';
+            searchInput.parentElement.style.borderBottom = 'none';
+            swipeLaunchControls.style.display = 'none';
+            sortControls.style.display = 'none';
+            
+            currentView = 'hidden';
+            startIndexOffset = 0;
+            jumpInput.value = '';
+            isJumpingToArtist = false;
 
-        renderView();
-    });
-}
+            styleCounter.innerHTML = `Hidden Styles: <span class="style-count-number">${hiddenItems.size.toLocaleString('en-US')}</span>`;
 
-    tabFavorites.addEventListener('click', (e) => {
+            if (searchInput.value) {
+                searchInput.value = '';
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+
+            renderView();
+        });
+    }
+
+tabFavorites.addEventListener('click', (e) => {
         e.preventDefault(); // Предотвращаем переход по ссылке
         if (currentView === 'favorites') return;
         setActiveTab(tabFavorites);
         favoritesControlsWrapper.style.display = 'flex'; // Показываем кнопки импорта/экспорта
+
+        // --- ДОБАВЛЕНО: Скрываем кнопки импорта/экспорта скрытых авторов ---
+        const hiddenControls = document.getElementById('hidden-controls-wrapper');
+        if (hiddenControls) hiddenControls.style.display = 'none';
+        // -----------------------------------------------------------------
+
         txtExportContainer.style.display = 'flex'; // Показываем экспорт в TXT
         // Подсказку о переходе в галерею показываем только на десктопе
         if (window.innerWidth > 992) {
@@ -940,25 +956,33 @@ function setActiveTab(activeTab) {
     });
 
     // --- Сохранение избранных в файл ---
+
+// --- Сохранение и загрузка данных (Избранное / Скрытые) ---
     const saveFavoritesBtn = document.getElementById('save-favorites-btn');
     const importFavoritesBtn = document.getElementById('import-favorites-btn');
+
     const exportTxtBtn = document.getElementById('export-txt-btn');
 
+    // НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ СКРЫТЫХ АВТОРОВ
+    const saveHiddenBtn = document.getElementById('save-hidden-btn');
+    const importHiddenBtn = document.getElementById('import-hidden-btn');
+    const importHiddenInput = document.getElementById('import-hidden-input');
+
+    // ==========================================
+    // ИМПОРТ ИЗБРАННОГО И ПАПОК (Оригинальный + фикс)
+    // ==========================================
     importFavoritesBtn.addEventListener('click', () => {
         importFavoritesInput.click();
     });
 
     importFavoritesInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
-        if (!file) {
-            return;
-        }
+        if (!file) return;
 
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                // 1. Проверяем и импортируем основной список избранного (обратная совместимость)
                 if (!data.favorites || !Array.isArray(data.favorites)) {
                     throw new Error('Invalid file format');
                 }
@@ -968,7 +992,6 @@ function setActiveTab(activeTab) {
                 const favStore = favTransaction.objectStore(STORE_NAME);
 
                 data.favorites.forEach(fav => {
-                    // Проверяем, что ID существует и его еще нет в избранном
                     if (fav.id && fav.timestamp && !favorites.has(String(fav.id))) {
                         favStore.put({ id: String(fav.id), timestamp: fav.timestamp });
                         importedCount++;
@@ -976,48 +999,37 @@ function setActiveTab(activeTab) {
                 });
 
                 await new Promise(resolve => favTransaction.oncomplete = resolve);
-                await loadFavoritesFromDB(); // Перезагружаем избранное из БД
+                await loadFavoritesFromDB();
 
-                // 2. Проверяем и импортируем данные о папках (для новых версий)
                 if (data.folderData && Array.isArray(data.folderData.folders) && typeof data.folderData.folderArtists === 'object') {
                     const { folders, folderArtists } = data.folderData;
                     const folderTx = db.transaction(['folders', 'folder_artists'], 'readwrite');
                     const foldersStore = folderTx.objectStore('folders');
                     const folderArtistsStore = folderTx.objectStore('folder_artists');
 
-                    // Очищаем старые данные о папках перед импортом
                     foldersStore.clear();
                     folderArtistsStore.clear();
 
-                    // Импортируем новые папки
                     folders.forEach(folder => {
-                        // Проверяем, что все необходимые поля присутствуют
                         if (folder.id && folder.name) {
                             foldersStore.put(folder);
                         }
                     });
 
-                    // Импортируем связи артистов и папок
                     for (const [folderId, artistIds] of Object.entries(folderArtists)) {
                         if (folderId && Array.isArray(artistIds)) {
-                            // [FIX] Данные уже в правильном формате {id, added}, просто сохраняем их
                             folderArtistsStore.put({ folderId, artistIds: artistIds });
                         }
                     }
 
                     await new Promise(resolve => folderTx.oncomplete = resolve);
-                    // Перезагружаем данные папок в модуле folders.js
                     if (window.appFolders && window.appFolders.loadData) {
                         await window.appFolders.loadData();
                     }
                 }
 
-                // 3. Обновляем UI после всех операций
-                showToast(importedCount > 0 
-                    ? `${importedCount} new favorites imported!`
-                    : 'No new favorites to import.');
-                renderView(); // Обновляем основной вид
-                // Обновляем счетчик избранных, если мы находимся на этой вкладке
+                showToast(importedCount > 0 ? `${importedCount} new favorites imported!` : 'No new favorites to import.');
+                renderView();
                 if (currentView === 'favorites') {
                     styleCounter.innerHTML = `Styles in Favorites: <span class="style-count-number">${favorites.size.toLocaleString('en-US')}</span>`;
                 }
@@ -1026,23 +1038,24 @@ function setActiveTab(activeTab) {
                 console.error('Error importing favorites:', error);
                 showToast('Error: Could not import favorites. Invalid file.');
             } finally {
-                // Сбрасываем значение input, чтобы можно было загрузить тот же файл снова
                 importFavoritesInput.value = '';
             }
         };
         reader.readAsText(file);
     });
 
+    // ==========================================
+    // ЭКСПОРТ ИЗБРАННОГО И ПАПОК
+    // ==========================================
     saveFavoritesBtn.addEventListener('click', () => {
         if (favorites.size === 0) {
             showToast('You have no favorites to save.');
             return;
         }
 
-        // Преобразуем Map в массив объектов, содержащих только id и timestamp
         const favoritesToSave = Array.from(favorites.entries())
           .map(([id, timestamp]) => ({ id, timestamp }))
-          .sort((a, b) => b.timestamp - a.timestamp); // Сортируем по дате добавления
+          .sort((a, b) => b.timestamp - a.timestamp);
 
         const exportData = {
             metadata: {
@@ -1051,17 +1064,14 @@ function setActiveTab(activeTab) {
                 favoritesCount: favoritesToSave.length
             },
             favorites: favoritesToSave,
-            // Добавляем новый блок для данных о папках
             folderData: null
         };
 
-        // Получаем данные о папках из модуля folders.js
         if (window.appFolders) {
-            const folders = window.appFolders.folders; // Массив папок
-            const folderArtists = window.appFolders.folderArtists; // Map<folderId, artistId[]>
+            const folders = window.appFolders.folders;
+            const folderArtists = window.appFolders.folderArtists;
 
             if (folders && folderArtists) {
-                // Преобразуем Map в простой объект для JSON-сериализации
                 const folderArtistsObj = Object.fromEntries(folderArtists.entries());
                 exportData.folderData = {
                     folders: folders,
@@ -1076,7 +1086,7 @@ function setActiveTab(activeTab) {
 
         const a = document.createElement('a');
         a.href = url;
-        const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const date = new Date().toISOString().slice(0, 10);
         a.download = `anima-style-favorites-${date}.json`;
         document.body.appendChild(a);
         a.click();
@@ -1085,6 +1095,112 @@ function setActiveTab(activeTab) {
 
         showToast('Favorites exported to JSON file!');
     });
+
+
+    // ==========================================
+    // АДАПТИРОВАНО: ИМПОРТ СКРЫТЫХ АВТОРОВ
+    // ==========================================
+    if (importHiddenBtn && importHiddenInput) {
+        importHiddenBtn.addEventListener('click', () => {
+            importHiddenInput.click();
+        });
+
+        importHiddenInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Проверяем структуру файла скрытых элементов
+                    if (!data.hidden || !Array.isArray(data.hidden)) {
+                        throw new Error('Invalid file format for hidden items');
+                    }
+
+                    let importedCount = 0;
+                    const hiddenTransaction = db.transaction(HIDDEN_STORE_NAME, 'readwrite');
+                    const hiddenStore = hiddenTransaction.objectStore(HIDDEN_STORE_NAME);
+
+                    data.hidden.forEach(item => {
+                        // Если ID корректный и его ещё нет в текущей карте скрытых
+                        if (item.id && item.timestamp && !hiddenItems.has(String(item.id))) {
+                            hiddenStore.put({ id: String(item.id), timestamp: item.timestamp });
+                            importedCount++;
+                        }
+                    });
+
+                    // Ждем завершения транзакции БД
+                    await new Promise(resolve => hiddenTransaction.oncomplete = resolve);
+                    // Перезагружаем карту из БД в память приложения
+                    if (typeof loadHiddenFromDB === 'function') {
+                        await loadHiddenFromDB();
+                    }
+
+                    showToast(importedCount > 0 
+                        ? `${importedCount} hidden artists imported!` 
+                        : 'No new artists to hide.');
+                    
+                    renderView();
+                    
+                    if (currentView === 'hidden') {
+                        styleCounter.innerHTML = `Hidden Styles: <span class="style-count-number">${hiddenItems.size.toLocaleString('en-US')}</span>`;
+                    }
+
+                } catch (error) {
+                    console.error('Error importing hidden items:', error);
+                    showToast('Error: Could not import hidden items. Invalid file.');
+                } finally {
+                    importHiddenInput.value = '';
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    // ==========================================
+    // АДАПТИРОВАНО: ЭКСПОРТ СКРЫТЫХ АВТОРОВ
+    // ==========================================
+    if (saveHiddenBtn) {
+        saveHiddenBtn.addEventListener('click', () => {
+            if (hiddenItems.size === 0) {
+                showToast('You have no hidden artists to save.');
+                return;
+            }
+
+            // Преобразуем карту Map [id -> timestamp] в массив объектов
+            const hiddenToSave = Array.from(hiddenItems.entries())
+                .map(([id, timestamp]) => ({ id, timestamp }))
+                .sort((a, b) => b.timestamp - a.timestamp); // Сначала свежие скрытые
+
+            const exportData = {
+                metadata: {
+                    appName: "Anima Style Explorer",
+                    exportDate: new Date().toISOString(),
+                    hiddenCount: hiddenToSave.length
+                },
+                hidden: hiddenToSave
+            };
+
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            const date = new Date().toISOString().slice(0, 10);
+            a.download = `anima-hidden-artists-${date}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('Hidden artists exported to JSON file!');
+        });
+    }
+
+
 
     exportTxtBtn.addEventListener('click', () => {
         if (favorites.size === 0) {

@@ -402,6 +402,45 @@ body::-webkit-scrollbar-thumb {
     transform-origin: center;
 }
 
+/* ==========================================================================
+   АДАПТИРОВАНО: Стили для кнопок меню Скрытых элементов (Hidden)
+   ========================================================================== */
+
+/* Контейнер для кнопок импорта/экспорта JSON в скрытом меню */
+#hidden-controls-wrapper {
+    display: none; /* Переключается через JavaScript (flex/none) */
+    border: 1px solid var(--border-color);
+    border-radius: var(--global-border-radius);
+    overflow: hidden; /* Скрываем углы дочерних элементов */
+}
+
+/* Перехватываем display: flex из JavaScript, превращая его в inline-flex для слитного вида */
+#hidden-controls-wrapper[style*="display: flex"] {
+    display: inline-flex !important;
+}
+
+/* Убираем индивидуальные рамки и скругления у кнопок внутри */
+#hidden-controls-wrapper .sort-button {
+    border: none;
+    border-radius: 0;
+    background-color: var(--card-background); /* Единый фон */
+}
+
+/* Стили для кнопки Import в скрытом меню */
+#import-hidden-btn {
+    border-right: 1px solid #545458; /* Более заметный разделитель */
+    color: var(--accent-color); /* Сохраняем акцентный цвет */
+}
+
+/* Эффекты при наведении */
+#hidden-controls-wrapper .sort-button:hover {
+    background-color: var(--border-color);
+}
+
+#import-hidden-btn:hover {
+    background-color: rgba(10, 132, 255, 0.15);
+}
+
 /* Убираем стрелки в input[type=number] для Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
