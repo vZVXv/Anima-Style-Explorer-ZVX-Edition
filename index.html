@@ -210,34 +210,43 @@
     <button id="scroll-to-top" class="scroll-to-top-btn" title="Scroll to top">↑</button>
 
     <!-- Swipe Mode Overlay -->
-    <div id="swipe-mode-overlay" class="swipe-overlay">
-        <div class="swipe-header">
-            <div class="swipe-header-left">
-                <div id="swipe-counter" class="swipe-counter"></div>
-                <div id="swipe-favorites-counter" class="swipe-favorites-counter" title="Total favorites">
-                    <span class="swipe-favorites-icon">♥</span>
-                    <span id="swipe-favorites-count">0</span>
-                </div>
+<div id="swipe-mode-overlay" class="swipe-overlay">
+    <div class="swipe-header">
+        <div class="swipe-header-left">
+            <div id="swipe-counter" class="swipe-counter"></div>
+            <div id="swipe-favorites-counter" class="swipe-favorites-counter" title="Total favorites">
+                <span class="swipe-favorites-icon">♥</span>
+                <span id="swipe-favorites-count">0</span>
             </div>
-            <div id="swipe-artist-name" class="swipe-artist-name"></div>
-            <button id="swipe-close-btn" class="swipe-close-btn" title="Close (Esc)">&times;</button>
         </div>
-        <div id="swipe-container" class="swipe-container">
-            <img id="swipe-prev-image" class="swipe-image swipe-image--prev" alt="Previous artist">
-            <img id="swipe-current-image" class="swipe-image swipe-image--current" alt="Current artist">
-            <div id="swipe-like-feedback" class="swipe-like-feedback">
-                <div class="heart"></div>
-            </div>
-            <img id="swipe-next-image" class="swipe-image swipe-image--next" alt="Next artist">
-        </div>
-        <div class="swipe-hint">
-  Use <kbd>←</kbd> <kbd>→</kbd> to navigate, 
-  <kbd>Mouse Wheel</kbd> to scroll, 
-  <kbd>C</kbd> to copy name, 
-  <kbd>↓</kbd> to favorite, 
-  <kbd>Esc</kbd> to close
-</div>
+        <div id="swipe-artist-name" class="swipe-artist-name"></div>
+        
+        <button id="swipe-close-btn" class="swipe-close-btn" title="Close (Esc)">&times;</button>
     </div>
+    
+    <div id="swipe-container" class="swipe-container">
+        <img id="swipe-prev-image" class="swipe-image swipe-image--prev" alt="Previous artist">
+        
+        <img id="swipe-current-image" class="swipe-image swipe-image--current" alt="Current artist">
+        
+        <div id="swipe-hidden-overlay" class="hidden-cross-overlay">
+            <span class="cross-icon">×</span>
+        </div>
+        
+        <div id="swipe-like-feedback" class="swipe-like-feedback">
+            <div class="heart"></div>
+        </div>
+        <img id="swipe-next-image" class="swipe-image swipe-image--next" alt="Next artist">
+    </div>
+    
+    <div class="swipe-hint">
+        Use <kbd>←</kbd> <kbd>→</kbd> to navigate, 
+        <kbd>Mouse Wheel</kbd> to scroll, 
+        <kbd>C</kbd> to copy name, 
+        <kbd>↓</kbd> to favorite, 
+        <kbd>↑</kbd> to hide, <kbd>Esc</kbd> to close
+    </div>
+</div>
 
     <script src="app/data.js?ver=2"></script>
     <script src="app/app.js?ver=2"></script>

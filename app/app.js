@@ -53,7 +53,7 @@
     let isFoldersPanelVisible = true; // Состояние видимости панели папок
     const SORT_DIRECTION_KEY = 'sortDirection';
 
-    // --- Глобальные переменные для доступа из других скриптов ---
+// --- Глобальные переменные для доступа из других скриптов ---
     window.appGlobals = {
         get currentItems() { return currentItems; },
         get favorites() { return favorites; },
@@ -65,6 +65,12 @@
         set db(value) { db = value; }, // Сеттер для обновления db из folders.js
         get selectedArtistIds() { return selectedArtistIds; }, // Экспортируем для folders.js
         clearSelection: () => selectedArtistIds.clear(), // Функция для очистки выделения
+        
+        // ДОБАВЛЯЕМ ЭТИ ТРИ СТРОКИ ДЛЯ СКРЫТИЯ В SWIPE-MODE:
+        get HIDDEN_STORE_NAME() { return HIDDEN_STORE_NAME; },
+        get hiddenItems() { return hiddenItems; },
+        loadHiddenFromDB, // Экспортируем функцию перезагрузки данных в память
+
         toggleFavorite,
         showToast,
         renderView,

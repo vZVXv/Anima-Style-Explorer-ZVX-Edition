@@ -13,10 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextImage = document.getElementById('swipe-next-image');
     const counterElement = document.getElementById('swipe-counter');
     const artistNameElement = document.getElementById('swipe-artist-name');
-    const closeSwipeBtn = document.getElementById('swipe-close-btn');
+
     const likeFeedbackElement = document.getElementById('swipe-like-feedback');
     const startSwipeBtn = document.getElementById('start-swipe-mode-btn');
     const favoritesCountElement = document.getElementById('swipe-favorites-count');
+	const closeSwipeBtn = document.getElementById('swipe-close-btn');
+    const swipeHideBtn = document.getElementById('swipe-hide-btn'); // <-- ДОБАВИТЬ ЭТУ СТРОКУ
+	
 
     let currentIndex = -1;
     let activeList = [];
@@ -47,7 +50,93 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         preloadedAheadIndex = end - 1;
     }
+async function hideCurrentArtist() {
+        if (currentIndex < 0 || currentIndex >= activeList.length) return;
+        
+        const currentArtist = activeList[currentIndex];
+        const artistId = String(currentArtist.id);
 
+        const db = getGlobal('db');
+        const HIDDEN_STORE_NAME = getGlobal('HIDDEN_STORE_NAME');
+        const hiddenItems = getGlobal('hiddenItems');
+        const loadHiddenFromDB = getGlobal('loadHiddenFromDB');
+
+        if (!db || !HIDDEN_STORE_NAME || !hiddenItems) {
+            console.error("База данных или коллекция скрытых элементов недоступны из app.js.");
+            return;
+        }
+
+        // ИСПРАВЛЕНО: Измеряем точные размеры И координаты смещения картинки внутри свайпа
+        const hiddenOverlay = document.getElementById('swipe-hidden-overlay');
+        if (currentImage && hiddenOverlay) {
+            hiddenOverlay.style.width = `${currentImage.clientWidth}px`;
+            hiddenOverlay.style.height = `${currentImage.clientHeight}px`;
+            hiddenOverlay.style.top = `${currentImage.offsetTop}px`;
+            hiddenOverlay.style.left = `${currentImage.offsetLeft}px`;
+        }
+
+        // Включаем анимацию большого креста (класс вешается на контейнер свайпа)
+        if (swipeContainer) {
+            swipeContainer.classList.add('is-hidden-animating');
+        }
+
+        try {
+            // 1. Записываем автора в базу данных IndexedDB
+            const transaction = db.transaction(HIDDEN_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(HIDDEN_STORE_NAME);
+            const timestamp = Date.now();
+            
+            store.put({ id: artistId, timestamp: timestamp });
+
+            await new Promise((resolve, reject) => {
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = () => reject(transaction.error);
+            });
+
+            // 2. Синхронизируем локальный Map hiddenItems приложения
+            hiddenItems.set(artistId, timestamp);
+            if (typeof loadHiddenFromDB === 'function') {
+                await loadHiddenFromDB();
+            }
+
+            // Даем вашей анимации креста красиво проиграться 300мс, затем переключаем карточку
+            setTimeout(() => {
+                if (swipeContainer) {
+                    swipeContainer.classList.remove('is-hidden-animating');
+                }
+
+                // 3. Удаляем автора из текущего списка активного свайп-раунда
+                activeList.splice(currentIndex, 1);
+
+                // Если скрыли вообще последнего автора в списке — закрываем свайп
+                if (activeList.length === 0) {
+                    closeSwipeMode();
+                } else {
+                    // Корректируем индекс, если удалили элемент с конца списка
+                    if (currentIndex >= activeList.length) {
+                        currentIndex = activeList.length - 1;
+                    }
+                    
+                    // Вызываем родную функцию обновления экрана из вашего swipe-mode.js
+                    if (typeof updateSwipeView === 'function') {
+                        updateSwipeView();
+                    }
+                }
+
+                // 4. Перерисовываем главную галерею на фоне, чтобы этот автор сразу исчез с экрана
+                const renderView = getGlobal('renderView');
+                if (typeof renderView === 'function') {
+                    renderView();
+                }
+            }, 300);
+
+        } catch (error) {
+            console.error("Ошибка при скрытии автора в Swipe Mode:", error);
+            if (swipeContainer) {
+                swipeContainer.classList.remove('is-hidden-animating');
+            }
+        }
+    }
     /**
      * Предзагружает предыдущую пачку изображений НАЗАД.
      */
@@ -67,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Открывает Swipe Mode для указанной карточки
      * @param {HTMLElement} cardElement - Карточка, на которую кликнули
      */
-    function openSwipeMode(cardElement) {
+function openSwipeMode(cardElement) {
         const currentView = getGlobal('currentView');
         // Дополнительная проверка, чтобы полностью блокировать запуск в "Избранном"
         if (currentView === 'favorites') {
@@ -77,16 +166,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const artistId = cardElement?.dataset.id; // cardElement может быть null
         const allCurrentItems = getGlobal('currentItems');
         const favorites = getGlobal('favorites');
+        const hiddenItems = getGlobal('hiddenItems'); // <-- ДОБАВЛЕНО
         const showToast = getGlobal('showToast');
 
-        // Фильтруем список, исключая уже добавленных в избранное
-        activeList = allCurrentItems.filter(item => !favorites.has(item.id));
+        // Фильтруем список, исключая И избранных, И уже скрытых авторов
+        activeList = allCurrentItems.filter(item => {
+            const isFav = favorites ? favorites.has(item.id) : false;
+            const isHidden = hiddenItems ? hiddenItems.has(String(item.id)) : false;
+            return !isFav && !isHidden;
+        });
 
         // Если карточек для просмотра 1 или меньше, режим не имеет смысла
         if (activeList.length <= 1) {
             if (showToast) {
                 if (allCurrentItems.length > 1 && activeList.length === 0) {
-                    showToast('All visible artists are already in favorites!');
+                    showToast('All visible artists are already in favorites or hidden!');
                 } else {
                     showToast('Not enough cards to start swipe mode.');
                 }
@@ -102,17 +196,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const originalClickedIndex = allCurrentItems.findIndex(item => item.id === artistId);
                 let nextAvailableItem = null;
                 for (let i = originalClickedIndex + 1; i < allCurrentItems.length; i++) {
-                    if (!favorites.has(allCurrentItems[i].id)) {
+                    const currentId = allCurrentItems[i].id;
+                    if (!favorites.has(currentId) && (!hiddenItems || !hiddenItems.has(String(currentId)))) {
                         nextAvailableItem = allCurrentItems[i];
                         break;
                     }
                 }
                 // Находим индекс этой следующей карточки в нашем отфильтрованном activeList.
-                // Если не нашли (все последующие уже в избранном), начнем с начала (индекс 0).
                 currentIndex = nextAvailableItem ? activeList.findIndex(item => item.id === nextAvailableItem.id) : 0;
+                if (currentIndex === -1) currentIndex = 0;
             } else {
-                // Если карточка не в избранном, просто находим ее индекс.
+                // Если карточка доступна, просто находим ее индекс.
                 currentIndex = activeList.findIndex(item => item.id === artistId);
+                if (currentIndex === -1) currentIndex = 0;
             }
         } else {
             // Если cardElement не передан (клик по кнопке), начинаем с самого начала
@@ -157,8 +253,17 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Обновляет все элементы в оверлее на основе currentIndex
      */
-    function updateSwipeView() {
+function updateSwipeView() {
         if (currentIndex < 0 || currentIndex >= activeList.length) return;
+
+        // ИСПРАВЛЕНО: Сбрасываем и размеры, и координаты оверлея перед загрузкой нового автора
+        const hiddenOverlay = document.getElementById('swipe-hidden-overlay');
+        if (hiddenOverlay) { 
+            hiddenOverlay.style.width = ''; 
+            hiddenOverlay.style.height = ''; 
+            hiddenOverlay.style.top = ''; 
+            hiddenOverlay.style.left = ''; 
+        }
 
         const prevIndex = (currentIndex - 1 + activeList.length) % activeList.length;
         const nextIndex = (currentIndex + 1) % activeList.length;
@@ -253,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Обработчик нажатий клавиш в Swipe Mode
      * @param {KeyboardEvent} e
      */
-    function handleSwipeKeyPress(e) {
+function handleSwipeKeyPress(e) {
         // Используем e.code для независимости от раскладки клавиатуры
         switch (e.code) {
             case 'ArrowLeft':
@@ -277,6 +382,13 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'ArrowDown':
                 addToFavorites();
                 break;
+            
+            // ИСПРАВЛЕНО: Скрытие автора перенесено на стрелку ВВЕРХ
+            case 'ArrowUp':
+                e.preventDefault(); // Предотвращаем стандартный скролл страницы браузером вверх
+                hideCurrentArtist();
+                break;
+
             case 'Escape':
                 closeSwipeMode();
                 break;
@@ -345,6 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Закрытие по клику на кнопку
     closeSwipeBtn.addEventListener('click', closeSwipeMode);
+
 
     // Закрытие по клику на фон
     swipeOverlay.addEventListener('click', (e) => {

@@ -2536,7 +2536,50 @@ input[type="range"]::-webkit-slider-thumb {
     color: #ccc;
     transform: scale(1.1);
 }
+/* Оверлей большого красного креста */
+.hidden-cross-overlay {
+    position: absolute;
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    bottom: 0;
+    background: rgba(255, 0, 0, 0.4); /* Твое оригинальное красное напыление */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* НАСТРОЙКИ КРЕСТА: Делаем его огромным и жирным */
+    font-size: 24rem; 
+    font-weight: 900;
+    color: #ff3b30; /* Насыщенный красный цвет */
+    font-family: system-ui, -apple-system, sans-serif;
+    
+    /* ТОЛСТАЯ ЧЕРНАЯ ОБВОДКА */
+    -webkit-text-stroke: 8px #000000; 
+    
+    /* ЧЕРНАЯ ТЕНЬ под крестом для объема */
+    text-shadow: 0 15px 40px rgba(0, 0, 0, 0.6); 
+    
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
+    pointer-events: none; /* Чтобы крест не блокировал клики, пока висит */
+    z-index: 9999; /* Выставляем самый высокий приоритет, чтобы перекрыть все элементы */
+}
 
+/* Класс, который активирует анимацию креста */
+.card.is-hidden-animating .hidden-cross-overlay,
+.swipe-container.is-hidden-animating .hidden-cross-overlay,
+.swipe-container.is-hidden-animating #swipe-hidden-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.page-title-container {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-top: 10px; /* Отступ сверху, чтобы не перекрываться с .top-info-container */
+}
 /* Стрелки навигации в лайтбоксе */
 .image-lightbox-arrow {
     position: absolute;
